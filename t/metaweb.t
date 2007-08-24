@@ -21,13 +21,18 @@ is($mw_with_login->username, 'baz', 'set username with accessor');
 # credentials.  But we don't need it any more, w00t.
 
 $mw->json_query({
-    query => q({
-      "type":"/music/artist",
-      "name":"The Police",
-      "album":[]
-    }),
-
-    name => 'test',
+    type => 'read',
+    query => q(
+        {
+          "albums": {
+            "query": {
+              "type":"/music/artist",
+              "name":"The Police",
+              "album":[]
+            }
+          }
+        }
+    ),
 });
 my $raw = $mw->raw_result();
 

@@ -1,6 +1,9 @@
 TODO
 
 * Allow list queries
-* Haven't actually tried out writing with MQL yet, so this only reads so far
+* Support write queries via query() (not just json_query)
+* Support uploads
 * Figure out interface for Metaweb::Result object
 * Test coverage is really shoddy.  I'm a bad bad girl.
+* Set up a config file so you don't have to keep entering
+  username/password/etc

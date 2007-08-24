@@ -8,7 +8,6 @@ lib/Metaweb.pm
 lib/Metaweb/Result.pm
 t/00-load.t
 t/boilerplate.t
-t/kwalitee.t
 t/pod-coverage.t
 t/pod.t
 t/metaweb.t

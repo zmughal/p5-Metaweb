@@ -1,5 +1,14 @@
 Revision history for Metaweb
 
+0.02    2007-08-24
+        * Now includes 'metaweb' command line script for easy command line
+          fiddling.
+        * json_query() now does writes as well as reads; query() doesn't
+          support writes yet, though.
+        * Changed API for json_query().  Now expects envelope (though
+          you can have it added for you it using the add_envelope arg).
+        * Documentation improvements, mostly in the general description area.
+
 0.01    2007-08-23 23:11
         Simple interface to Metaweb/Freebase.  Alpha release.
 
