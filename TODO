@@ -1,0 +1,6 @@
+TODO
+
+* Allow list queries
+* Haven't actually tried out writing with MQL yet, so this only reads so far
+* Figure out interface for Metaweb::Result object
+* Test coverage is really shoddy.  I'm a bad bad girl.
