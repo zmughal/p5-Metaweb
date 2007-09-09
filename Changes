@@ -1,5 +1,10 @@
 Revision history for Metaweb
 
+0.03    2007-09-09
+        * Previous version was missing the command line tool, 'metaweb'.
+          This has now been added to the MANIFEST so it should install
+          correctly.
+
 0.02    2007-08-24
         * Now includes 'metaweb' command line script for easy command line
           fiddling.

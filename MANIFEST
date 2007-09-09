@@ -6,6 +6,7 @@ README
 TODO
 lib/Metaweb.pm
 lib/Metaweb/Result.pm
+scripts/metaweb
 t/00-load.t
 t/boilerplate.t
 t/pod-coverage.t
