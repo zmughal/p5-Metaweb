@@ -6,7 +6,7 @@ use strict;
 use base qw(Class::Accessor);
 use URI::Escape;
 use LWP::UserAgent;
-use JSON;
+use JSON::XS;
 use Metaweb::Result;
 
 __PACKAGE__->mk_accessors(qw(
@@ -18,6 +18,7 @@ __PACKAGE__->mk_accessors(qw(
     write_path
     credentials
     ua
+    raw_query
     raw_result
     err_code
     err_message
@@ -29,11 +30,11 @@ Metaweb - Perl interface to the Metaweb/Freebase API
 
 =head1 VERSION
 
-Version 0.03
+Version 0.04
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 =head1 SYNOPSIS
 
@@ -44,7 +45,11 @@ our $VERSION = '0.03';
         password => $password
     });
     $mw->login();
-    my $result = $mw->query($mql);
+
+  my $result = $mw->query({
+      name => 'my_query',
+      query => \%query,
+  });
 
 =head1 DESCRIPTION
 
@@ -58,7 +63,7 @@ application that runs on it.  For comparison, consider Mediawiki
 (software) and Wikipedia (website and data collection). 
 
 This means that you can use this Metaweb module to talk to Freebase or
--- in future -- any other website built on the Metaweb platform.
+- in future - any other website built on the Metaweb platform.
 
 The Metaweb Query Language (MQL) is based on JSON and query-by-example.
 The MQL and API documentation can be found on the Freebase website in
@@ -90,7 +95,7 @@ list.
 
 =head1 FUNCTIONS
 
-=head2 new 
+=head2 new()
 
 Instantiate a Metaweb client object.  Takes various options including:
 
@@ -104,7 +109,30 @@ The username to login with
 
 The password to login with
 
+=item server
+
+The server address
+
+=item read_path
+
+The URL path of the read service, relative to the server address
+
+=item write_path
+
+The URL path of the write service, relative to the server address
+
+=item login_path
+
+The URL path of the login service, relative to the server address
+
 =back
+
+None of these are actually required; the server and path options default
+to Freebase's, and the username/login are only required for write
+access.  Therefore, if you only want to read from Freebase, all you need
+is:
+
+    my $mw = Metaweb->new();
 
 =cut
 
@@ -121,53 +149,24 @@ sub new {
     return $self;
 }
 
-=head2 username()
-
-Get/set default login username.
-
-=head2 password()
-
-Get/set default login password.
-
-=head2 server()
-
-Get/set server to login to.  Defaults to 'http://www.freebase.com'.
-
-=head2 login_path()
-
-Get/set the URL to login to, relative to the server.  Defaults to
-'/api/account/login'.
-
-=head2 read_path()
-
-Get/set the URL to perform read queries, relative to the server.  Defaults to
-'/api/service/mqlread'.
-
-=head2 write_path()
-
-Get/set the URL to perform write queries, relative to the server.  Defaults to
-'/api/service/mqlwrite'.
-
 =head2 login()
 
 Perform a login to the Metaweb server and pick up the necessary cookie.
-Optionally takes a hashref of arguments including username, password,
-server, and login_path which will be used only for this login and not set
-on the object.  (Generally you'll want to set those details when you
-create the metaweb object.)
+Uses the username/password details provided to the constructor method,
+or via the appropriately named accessor methods (see below).
 
 =cut
 
 sub login {
     my ($self, $args) = @_;
 
-    my $username = $args->{username}   || $self->username()  || warn "Username not specified";
-    my $password = $args->{password}   || $self->password()  || warn "Password not specified";
-    my $server = $args->{server}       || $self->server()    || warn "Server not specified";
-    my $login_path = $args->{login_path} || $self->login_path() || warn "Login URL not specified";
+    my $username   = $self->username();
+    my $password   = $self->password();
+    my $server     = $self->server();
+    my $login_path = $self->login_path();
 
-    print "Server: $server\n";
-    print "Login URL: $login_path\n";
+    # warn "Server: $server\n";
+    # warn "Login URL: $login_path\n";
 
     unless ($self->ua()) {
         $self->ua(LWP::UserAgent->new());
@@ -197,12 +196,46 @@ sub login {
 
 =head2 query()
 
-Perform a MQL query.  Takes a query as a Perl data structure that's
-converted to JSON using the L<JSON> module's C<objToJson()> method.
-The MQL envelope will automatically be put around the query.
+Perform a MQL query.  You must provide a name and a query hash as
+arguments:
+
+  my $result = $mw->query({
+      name => 'my_query',
+      query => { type => 'person', name => undef } # all people!
+  });
+
+The query is a a Perl data structure that's converted to JSON using the
+L<JSON::XS> module's C<to_json()> method.  The MQL envelope will
+automatically be put around the query, using the name you provide.
 
 Currently this method only supports "read" queries.  If you want to
 write/upload, use C<json_query()>.
+
+The results of this method are returned as a Perl data structure (or
+undef on failure); the following attributes are also set for diagnostic
+purposes.
+
+=over 4
+
+=item raw_query
+
+The raw JSON used in the query.
+
+=item raw_result
+
+The raw JSON returned.
+
+=item err_code
+
+Error code (only used if an error occurs).
+
+=item err_message
+
+Error message (only used if an error occurs).
+
+=back
+
+See the accessor methods (below) for how to access all these attributes.
 
 =cut
 
@@ -212,10 +245,10 @@ sub query {
     warn "Query name not specified" unless $args->{name};
     warn "Query not specified"      unless $args->{query};
 
-    $args->{query} = _add_envelope($args->{name}, objToJson($args->{query}));
+    $args->{query} = _add_envelope($args->{name}, to_json($args->{query}));
 
-    my $raw = $self->json_query($args);
-    my $outer = jsonToObj($raw);
+    my $raw_result = $self->json_query($args);
+    my $outer = from_json($raw_result);
     my $inner = $outer->{$args->{name}};
     
     if ($inner->{code} !~ m|^/api/status/ok|) {  # If the query was not okay
@@ -223,6 +256,9 @@ sub query {
         $self->err_code($err->{code});
         $self->err_message($err->{message});
         return undef;
+    } else {
+        $self->err_code(undef);
+        $self->err_message(undef);
     }
 
     my $result = Metaweb::Result->new($inner->{result});
@@ -250,9 +286,10 @@ including the envelope.
 
 The raw JSON is returned.  No parsing whatsoever is done.
 
-C<raw_result()> is also set as a side effect, same as for C<query()>,
-but C<error()> is *not* set, as we'd need to parse the JSON to get at it
-and the whole point of this is that it's unparsed.
+C<raw_query> and C<raw_result()> are set as a side effect, same as for
+C<query()>, but C<err_code()> and C<err_message> are *not* set, as we'd
+need to parse the JSON to get at it and the whole point of this is that
+it's unparsed.
 
 =cut
 
@@ -261,6 +298,7 @@ sub json_query {
 
     warn "Query not specified"      unless $args->{query};
     my $query = $args->{query};
+    $self->raw_query($query);
     my $type = $args->{type} || "read";
 
     unless ($self->ua()) {
@@ -301,6 +339,43 @@ sub _add_envelope {
     }); 
 }
 
+=head1 ACCESSOR METHODS
+
+You probably won't need these much in day-to-day use, but they're here
+for you if you want them.
+
+=head2 username()
+
+Get/set default login username.
+
+=head2 password()
+
+Get/set default login password.
+
+=head2 server()
+
+Get/set server to login to.  Defaults to 'http://www.freebase.com'.
+
+=head2 login_path()
+
+Get/set the URL to login to, relative to the server.  Defaults to
+'/api/account/login'.
+
+=head2 read_path()
+
+Get/set the URL to perform read queries, relative to the server.  Defaults to
+'/api/service/mqlread'.
+
+=head2 write_path()
+
+Get/set the URL to perform write queries, relative to the server.  Defaults to
+'/api/service/mqlwrite'.
+
+=head2 raw_query()
+
+The raw JSON of the last query made.  This is set by both C<query()> and 
+C<json_query()>.
+
 =head2 raw_result()
 
 The raw JSON from the response.  This is set by both C<query()> and
@@ -318,11 +393,12 @@ to parse the JSON yourself.
 
 =head1 SEE ALSO
 
-L<JSON>, L<metaweb> (command line client).
+L<JSON>, L<metaweb> (command line client), L<WWW::Metaweb> (alternative
+interface).
 
 =head1 AUTHOR
 
-Kirrily Robert, C<< <skud at cpan.og> >>
+Kirrily Robert, C<< <skud at cpan.org> >>
 
 =head1 BUGS
 

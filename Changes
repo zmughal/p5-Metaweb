@@ -1,5 +1,19 @@
 Revision history for Metaweb
 
+0.04    2007-09-09
+        * No longer accepts params to the login() method; use accessor
+          methods instead.
+        * Now uses JSON_XS which, allegedly, fixes problems with
+          string-to-integer conversions (in response to discussion on
+          freebase mailing list)
+        * Removed some diagnostic print statements that shouldn't have
+          been there in the first place, really
+        * Included examples/ directory in dist
+        * Updated documentation significantly
+        * See blog post at
+          http://infotrope.net/blog/2007/09/09/a-quick-tour-of-freebase/
+          for a quick tour of Freebase including use of this module.
+
 0.03    2007-09-09
         * Previous version was missing the command line tool, 'metaweb'.
           This has now been added to the MANIFEST so it should install

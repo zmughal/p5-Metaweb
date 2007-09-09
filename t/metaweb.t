@@ -34,10 +34,10 @@ $mw->json_query({
         }
     ),
 });
-my $raw = $mw->raw_result();
+my $raw_result = $mw->raw_result();
 
 # this will fail if the Police's first album changes.  It seems unlikely.
-like($raw, qr("album": \[\s+"Outlandos d'Amour",), 
+like($raw_result, qr("album": \[\s+"Outlandos d'Amour",), 
     "picked up first album from raw results");
 
 my $res = $mw->query({
