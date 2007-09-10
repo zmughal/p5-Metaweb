@@ -1,5 +1,8 @@
 Revision history for Metaweb
 
+0.05    2007-09-10
+        * Fixed dependencies; s/JSON/JSON::XS/
+
 0.04    2007-09-09
         * No longer accepts params to the login() method; use accessor
           methods instead.

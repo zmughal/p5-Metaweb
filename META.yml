@@ -1,6 +1,6 @@
 ---
 name: Metaweb
-version: 0.04
+version: 0.05
 author:
   - 'Kirrily Robert <skud@cpan.og>'
 abstract: Perl interface to the Metaweb/Freebase API
@@ -9,7 +9,7 @@ resources:
   license: http://dev.perl.org/licenses/
 requires:
   Class::Accessor: 0
-  JSON: 0
+  JSON::XS: 0
   LWP::UserAgent: 0
   URI::Escape: 0
 build_requires:
@@ -17,7 +17,7 @@ build_requires:
 provides:
   Metaweb:
     file: lib/Metaweb.pm
-    version: 0.04
+    version: 0.05
   Metaweb::Result:
     file: lib/Metaweb/Result.pm
 generated_by: Module::Build version 0.2808
