@@ -247,14 +247,10 @@ sub query {
     my $raw_result = $self->json_query(%args);
     my $response = decode_json($raw_result);
 
-    my $raw_result = $self->json_query($args);
-    my $outer = from_json($raw_result);
-    my $inner = $outer->{$args->{name}};
-    
-    if ($inner->{code} !~ m|^/api/status/ok|) {  # If the query was not okay
-        my $err = $inner->{messages}[0];
-        $self->err_code($err->{code});
-        $self->err_message($err->{message});
+    if (exists $response->{errors}) {  # If the query was not okay
+        # TODO store the arrayref in $response->{errors}
+        $self->err_code($response->{code});
+        $self->err_message($response->{message});
         return undef;
     } else {
         $self->err_code(undef);
