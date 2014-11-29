@@ -20,37 +20,33 @@ is($mw_with_login->username, 'baz', 'set username with accessor');
 # not testing login because, duh, I don't want to hand around my
 # credentials.  But we don't need it any more, w00t.
 
-$mw->json_query({
+$mw->json_query(
     type => 'read',
     query => q(
         {
-          "albums": {
-            "query": {
-              "type":"/music/artist",
-              "name":"The Police",
-              "album":[]
-            }
-          }
+          "type": "/music/artist",
+          "name": "The Police",
+          "album": []
         }
     ),
-});
+);
 my $raw_result = $mw->raw_result();
 
-# this will fail if the Police's first album changes.  It seems unlikely.
-like($raw_result, qr("album": \[\s+"Outlandos d'Amour",), 
+## this will fail if the Police's first album changes.  It seems unlikely.
+like($raw_result, qr("album": \[\s+"Outlandos d'Amour",),
     "picked up first album from raw results");
 
-my $res = $mw->query({
-    name => 'albums',
-    query => {
-        type => "/music/artist",
-        name => "The Police",
-        album => [],
-    },
-});
+my $res = $mw->query(
+    query =>
+      {
+          type => "/music/artist",
+          name => "The Police",
+          album => [],
+      },
+);
 isa_ok($res, 'Metaweb::Result');
 
 # this will fail if the Police's first album changes.  It seems unlikely.
-is($res->{content}->{album}->[0], "Outlandos d'Amour", 
+is($res->{content}{album}[0], "Outlandos d'Amour",
     "picked up first album from results");
 
