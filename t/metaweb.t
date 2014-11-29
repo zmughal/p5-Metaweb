@@ -10,7 +10,7 @@ can_ok('Metaweb', 'new');
 my $mw = Metaweb->new();
 isa_ok($mw, 'Metaweb');
 
-my $mw_with_login = Metaweb->new({ username => 'foo', password => 'bar'});
+my $mw_with_login = Metaweb->new( username => 'foo', password => 'bar' );
 is($mw_with_login->username, 'foo', 'set username via new');
 is($mw_with_login->password, 'bar', 'set password via new');
 

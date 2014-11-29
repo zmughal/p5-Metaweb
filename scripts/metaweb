@@ -76,6 +76,6 @@ my $type = ($write ? "write" : "read");
 $/ = undef; # slurp!
 my $query = <STDIN>;
 
-my $mw = Metaweb->new(\%args);
+my $mw = Metaweb->new(%args);
 $mw->login() if $username;
-print $mw->json_query({query => $query, type => $type});
+print $mw->json_query( query => $query, type => $type );

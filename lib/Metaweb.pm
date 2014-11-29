@@ -40,27 +40,26 @@ our $VERSION = '0.05';
 
     use Metaweb;
 
-    my $mw = Metaweb->new({
+    my $mw = Metaweb->new(
         username => $username,
         password => $password
-    });
+    );
     $mw->login();
 
-  my $result = $mw->query({
-      name => 'my_query',
+  my $result = $mw->query(
       query => \%query,
-  });
+  );
 
 =head1 DESCRIPTION
 
 This is a Perl interface to the Metaweb database, best known through the
-application Freebase (http://freebase.com).  
+application Freebase (http://freebase.com).
 
 If this is your first encounter with Metaweb/Freebase, chances are
 you're confused about what the two terms mean.  In short, Metaweb is the
 underlying database technology and Freebase is large, well-known
 application that runs on it.  For comparison, consider Mediawiki
-(software) and Wikipedia (website and data collection). 
+(software) and Wikipedia (website and data collection).
 
 This means that you can use this Metaweb module to talk to Freebase or
 - in future - any other website built on the Metaweb platform.
@@ -137,15 +136,15 @@ is:
 =cut
 
 sub new {
-    my ($class, $args) = @_;
+    my ($class, %args) = @_;
     my $self = {};
     bless $self, $class;
-    $self->username($args->{username});
-    $self->password($args->{password});
-    $self->server     ( $args->{server}     || 'http://www.freebase.com' );
-    $self->read_path  ( $args->{read_path}  || '/api/service/mqlread'    );
-    $self->write_path ( $args->{write_path} || '/api/service/mqlwrite'   );
-    $self->login_path ( $args->{login_path} || '/api/account/login'      );
+    $self->username($args{username});
+    $self->password($args{password});
+    $self->server     ( $args{server}     || 'https://www.googleapis.com' );
+    $self->read_path  ( $args{read_path}  || '/freebase/v1/mqlread'    );
+    $self->write_path ( $args{write_path} || '/freebase/v1/mqlwrite'   );
+    $self->login_path ( $args{login_path} || '/api/account/login'      );
     return $self;
 }
 
@@ -173,14 +172,14 @@ sub login {
     }
     my $res = $self->ua->post("$server$login_path", {username=>$username,password=>$password});
 
-    my $raw = $res->header('Set-Cookie'); 
+    my $raw = $res->header('Set-Cookie');
     unless ($raw) {
         warn "Couldn't login to $server";
         return undef;
     }
     my @cookies = split(', ',$raw);        # Break cookies at commas
 
-    # Each cookie is broken into fields with semicolons. 
+    # Each cookie is broken into fields with semicolons.
     # We want the only first field of each cookie
     my $credentials = ''; # We'll accumulate login credentials here
     for my $cookie (@cookies) {                        # Loop through cookies
@@ -196,17 +195,16 @@ sub login {
 
 =head2 query()
 
-Perform a MQL query.  You must provide a name and a query hash as
-arguments:
+Perform a MQL query.  You must provide a query hash as an
+argument:
 
   my $result = $mw->query({
-      name => 'my_query',
       query => { type => 'person', name => undef } # all people!
   });
 
 The query is a a Perl data structure that's converted to JSON using the
-L<JSON::XS> module's C<to_json()> method.  The MQL envelope will
-automatically be put around the query, using the name you provide.
+L<JSON::XS> module's C<encode_json()> method.  The MQL envelope will
+automatically be put around the query.
 
 Currently this method only supports "read" queries.  If you want to
 write/upload, use C<json_query()>.
@@ -240,12 +238,14 @@ See the accessor methods (below) for how to access all these attributes.
 =cut
 
 sub query {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
 
-    warn "Query name not specified" unless $args->{name};
-    warn "Query not specified"      unless $args->{query};
+    warn "Query not specified"      unless $args{query};
 
-    $args->{query} = _add_envelope($args->{name}, to_json($args->{query}));
+    $args{query} = encode_json($args{query});
+
+    my $raw_result = $self->json_query(%args);
+    my $response = decode_json($raw_result);
 
     my $raw_result = $self->json_query($args);
     my $outer = from_json($raw_result);
@@ -261,13 +261,13 @@ sub query {
         $self->err_message(undef);
     }
 
-    my $result = Metaweb::Result->new($inner->{result});
+    my $result = Metaweb::Result->new($response->{result});
     return $result;
 }
 
 =head2 json_query
 
-This method sends and receives raw JSON to the Metaweb API.  
+This method sends and receives raw JSON to the Metaweb API.
 
 Arguments are passed as a hashref and include:
 
@@ -277,7 +277,7 @@ Arguments are passed as a hashref and include:
 
 May be "read", "write", or "update".  Default is "read".
 
-=item query 
+=item query
 
 The query in JSON format.  You are expected to send the full JSON,
 including the envelope.
@@ -294,12 +294,12 @@ it's unparsed.
 =cut
 
 sub json_query {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
 
-    warn "Query not specified"      unless $args->{query};
-    my $query = $args->{query};
+    warn "Query not specified"      unless $args{query};
+    my $query = $args{query};
     $self->raw_query($query);
-    my $type = $args->{type} || "read";
+    my $type = $args{type} || "read";
 
     unless ($self->ua()) {
         $self->ua(LWP::UserAgent->new());
@@ -326,17 +326,8 @@ sub json_query {
         return $raw;
     } else {
         warn "Request failed";
-        print $self->ua->content();
+        print $response->content();
     }
-}
-
-sub _add_envelope {
-    my ($name, $query) = @_;
-    return qq({
-      "$name": {
-        "query": $query
-      }
-    }); 
 }
 
 =head1 ACCESSOR METHODS
@@ -373,7 +364,7 @@ Get/set the URL to perform write queries, relative to the server.  Defaults to
 
 =head2 raw_query()
 
-The raw JSON of the last query made.  This is set by both C<query()> and 
+The raw JSON of the last query made.  This is set by both C<query()> and
 C<json_query()>.
 
 =head2 raw_result()
