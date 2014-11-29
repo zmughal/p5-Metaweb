@@ -316,7 +316,7 @@ sub json_query {
     } else {
         my $path = $self->read_path() || warn "Query URL not specified for read";
         $query = uri_escape($query);
-        my $url = $server . $path . "?queries=" . $query;
+        my $url = $server . $path . "?query=" . $query;
         $response = $self->ua->get($url);
     }
 
