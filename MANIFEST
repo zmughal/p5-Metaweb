@@ -12,7 +12,6 @@ t/boilerplate.t
 t/pod-coverage.t
 t/pod.t
 t/metaweb.t
-t/json.t
 examples/read.mql
 examples/write.mql
 examples/ships.pl
