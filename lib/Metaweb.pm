@@ -6,7 +6,7 @@ use strict;
 use base qw(Class::Accessor);
 use URI::Escape;
 use LWP::UserAgent;
-use JSON::XS;
+use JSON::MaybeXS;
 use Metaweb::Result;
 
 __PACKAGE__->mk_accessors(qw(
@@ -203,7 +203,7 @@ argument:
   });
 
 The query is a a Perl data structure that's converted to JSON using the
-L<JSON::XS> module's C<encode_json()> method.  The MQL envelope will
+L<JSON> module's C<encode_json()> method.  The MQL envelope will
 automatically be put around the query.
 
 Currently this method only supports "read" queries.  If you want to
