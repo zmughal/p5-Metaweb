@@ -1,30 +1,14 @@
-package Metaweb;
+=pod
 
-use warnings;
-use strict;
+=encoding UTF-8
 
-use base qw(Class::Accessor);
-use URI::Escape;
-use LWP::UserAgent;
-use JSON::MaybeXS;
-use Metaweb::Result;
+=head1 NAME
 
-__PACKAGE__->mk_accessors(qw(
-    username
-    password
-    server
-    login_path
-    read_path
-    write_path
-    credentials
-    ua
-    raw_query
-    raw_result
-    err_code
-    err_message
-));
+Metaweb - Perl interface to the Metaweb/Freebase API
 
-# ABSTRACT: Perl interface to the Metaweb/Freebase API
+=head1 VERSION
+
+version 0.06
 
 =head1 SYNOPSIS
 
@@ -123,65 +107,11 @@ is:
 
     my $mw = Metaweb->new();
 
-=cut
-
-sub new {
-    my ($class, %args) = @_;
-    my $self = {};
-    bless $self, $class;
-    $self->username($args{username});
-    $self->password($args{password});
-    $self->server     ( $args{server}     || 'https://www.googleapis.com' );
-    $self->read_path  ( $args{read_path}  || '/freebase/v1/mqlread'    );
-    $self->write_path ( $args{write_path} || '/freebase/v1/mqlwrite'   );
-    $self->login_path ( $args{login_path} || '/api/account/login'      );
-    return $self;
-}
-
 =head2 login()
 
 Perform a login to the Metaweb server and pick up the necessary cookie.
 Uses the username/password details provided to the constructor method,
 or via the appropriately named accessor methods (see below).
-
-=cut
-
-sub login {
-    my ($self, $args) = @_;
-
-    my $username   = $self->username();
-    my $password   = $self->password();
-    my $server     = $self->server();
-    my $login_path = $self->login_path();
-
-    # warn "Server: $server\n";
-    # warn "Login URL: $login_path\n";
-
-    unless ($self->ua()) {
-        $self->ua(LWP::UserAgent->new());
-    }
-    my $res = $self->ua->post("$server$login_path", {username=>$username,password=>$password});
-
-    my $raw = $res->header('Set-Cookie');
-    unless ($raw) {
-        warn "Couldn't login to $server";
-        return undef;
-    }
-    my @cookies = split(', ',$raw);        # Break cookies at commas
-
-    # Each cookie is broken into fields with semicolons.
-    # We want the only first field of each cookie
-    my $credentials = ''; # We'll accumulate login credentials here
-    for my $cookie (@cookies) {                        # Loop through cookies
-        my @parts = split(";", $cookie);               # Split each one on ;
-        $credentials = $credentials . $parts[0] . ';'; # Remember first part
-    }
-    chop($credentials);   # Remove trailing semicolon
-    $self->credentials($credentials);
-    $self->ua->default_header('Cookie' => $credentials);
-
-    return 1;
-}
 
 =head2 query()
 
@@ -225,32 +155,6 @@ Error message (only used if an error occurs).
 
 See the accessor methods (below) for how to access all these attributes.
 
-=cut
-
-sub query {
-    my ($self, %args) = @_;
-
-    warn "Query not specified"      unless $args{query};
-
-    $args{query} = encode_json($args{query});
-
-    my $raw_result = $self->json_query(%args);
-    my $response = decode_json($raw_result);
-
-    if (exists $response->{errors}) {  # If the query was not okay
-        # TODO store the arrayref in $response->{errors}
-        $self->err_code($response->{code});
-        $self->err_message($response->{message});
-        return undef;
-    } else {
-        $self->err_code(undef);
-        $self->err_message(undef);
-    }
-
-    my $result = Metaweb::Result->new($response->{result});
-    return $result;
-}
-
 =head2 json_query
 
 This method sends and receives raw JSON to the Metaweb API.
@@ -276,45 +180,6 @@ C<raw_query> and C<raw_result()> are set as a side effect, same as for
 C<query()>, but C<err_code()> and C<err_message> are *not* set, as we'd
 need to parse the JSON to get at it and the whole point of this is that
 it's unparsed.
-
-=cut
-
-sub json_query {
-    my ($self, %args) = @_;
-
-    warn "Query not specified"      unless $args{query};
-    my $query = $args{query};
-    $self->raw_query($query);
-    my $type = $args{type} || "read";
-
-    unless ($self->ua()) {
-        $self->ua(LWP::UserAgent->new());
-    }
-
-    my $server  = $self->server() || warn "Server not specified";
-
-    my $response;
-    if ($type eq 'write') {
-        $self->ua->default_header('X-Metaweb-Request' => 1);
-        my $path = $self->write_path() || warn "Query URL not specified for write";
-        my $url = $server . $path;
-        $response = $self->ua->post($url, { queries => $query });
-    } else {
-        my $path = $self->read_path() || warn "Query URL not specified for read";
-        $query = uri_escape($query);
-        my $url = $server . $path . "?query=" . $query;
-        $response = $self->ua->get($url);
-    }
-
-    if ($response->is_success()) {
-        my $raw = $response->content();
-        $self->raw_result($raw);
-        return $raw;
-    } else {
-        warn "Request failed";
-        print $response->content();
-    }
-}
 
 =head1 ACCESSOR METHODS
 
@@ -421,6 +286,15 @@ APIs recently...
     Hayden Stainsby (CPAN: HDS)
     Kirsten Jones (CPAN: SYNEDRA)
 
-=cut
+=head1 AUTHOR
 
-1; # End of Metaweb
+Kirrily Robert <skud@cpan.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2007 by Kirrily Robert.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=cut
